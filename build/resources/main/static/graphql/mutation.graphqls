@@ -1,3 +1,0 @@
-type Mutation {
-  addUser(id: ID, name: String, age: Int): User
-}

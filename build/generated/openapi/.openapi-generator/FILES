@@ -1,5 +1,0 @@
-README.md
-pom.xml
-src/main/java/fun/mouyang/interfaces/rest/controller/ApiUtil.java
-src/main/java/fun/mouyang/interfaces/rest/controller/UserApi.java
-src/main/java/fun/mouyang/interfaces/rest/dto/User.java
