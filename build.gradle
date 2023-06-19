@@ -1,0 +1,101 @@
+import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.1.0'
+	id 'io.spring.dependency-management' version '1.1.0'
+	id 'org.openapi.generator' version '6.6.0'
+	id "io.github.kobylynskyi.graphql.codegen" version "5.7.2"
+}
+
+group = 'fun.mouyang'
+version = '1.0'
+sourceCompatibility = '17'
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	// Spring
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-graphql'
+
+	// OpenAPI
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.1.0'
+	implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
+
+	// lombok
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+
+	// testing
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.graphql:spring-graphql-test'
+}
+
+//openApiGenerate {
+//	generatorName = 'spring'
+//	inputSpec = file("${rootDir}/src/main/resources/static/openapi/user.yaml").toString()
+//	outputDir = file("${buildDir}/generated/openapi").toString()
+//	apiPackage = 'fun.mouyang.interfaces.rest.controller'
+//	modelPackage = 'fun.mouyang.interfaces.rest.dto'
+//  validateSpec = false
+//	configOptions = [
+//		useSpringBoot3: "true",
+//		interfaceOnly: "true"
+//	]
+//}
+
+task openApiMultipleGenerate {
+	def openapiDirectory = file("${rootDir}/src/main/resources/static/openapi")
+	openapiDirectory.eachFileRecurse() {spec ->
+		tasks.create("openApiGenerate-${spec.getName()}", GenerateTask.class, {
+			generatorName = 'spring'
+			inputSpec = file("${rootDir}/src/main/resources/static/openapi/${spec.getName()}").toString()
+			outputDir = file("${buildDir}/generated/openapi").toString()
+			apiPackage = 'fun.mouyang.interfaces.rest.controller'
+			modelPackage = 'fun.mouyang.interfaces.rest.dto'
+			validateSpec = false
+			configOptions = [
+				useSpringBoot3: "true",
+				interfaceOnly: "true"
+			]
+		})
+		dependsOn "openApiGenerate-${spec.getName()}"
+	}
+}
+
+graphqlCodegen {
+	graphqlSchemas.rootDir = file("${rootDir}/src/main/resources/static/graphql").toString()
+	outputDir = file("${buildDir}/generated/graphql")
+	apiPackageName = 'fun.mouyang.interfaces.graphql.controller'
+	modelPackageName = 'fun.mouyang.interfaces.graphql.dto'
+	generateToString = true
+	generateEqualsAndHashCode = true
+}
+
+sourceSets {
+	main {
+		java {
+			srcDir 'src/main/java'
+			srcDir "${buildDir}/generated/openapi/src/main/java"
+			srcDir "${buildDir}/generated/graphql"
+		}
+	}
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+//compileJava.dependsOn tasks.openApiGenerate
+compileJava.dependsOn tasks.openApiMultipleGenerate
+
+compileJava.dependsOn tasks.graphqlCodegen
